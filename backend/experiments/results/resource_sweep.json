@@ -1,0 +1,41 @@
+{
+  "4": {
+    "random": {
+      "coverage_pct": 21.3,
+      "casualties": 122.2
+    },
+    "ai_optimised": {
+      "coverage_pct": 24.5,
+      "casualties": 121.9
+    },
+    "coverage_gain": 3.2,
+    "casualties_averted": 0.3,
+    "seeds": 30
+  },
+  "10": {
+    "random": {
+      "coverage_pct": 32.3,
+      "casualties": 104.6
+    },
+    "ai_optimised": {
+      "coverage_pct": 37.5,
+      "casualties": 99.2
+    },
+    "coverage_gain": 5.2,
+    "casualties_averted": 5.4,
+    "seeds": 30
+  },
+  "20": {
+    "random": {
+      "coverage_pct": 44.1,
+      "casualties": 85.2
+    },
+    "ai_optimised": {
+      "coverage_pct": 51.0,
+      "casualties": 76.9
+    },
+    "coverage_gain": 7.0,
+    "casualties_averted": 8.3,
+    "seeds": 30
+  }
+}

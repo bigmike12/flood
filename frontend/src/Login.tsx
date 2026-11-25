@@ -48,7 +48,7 @@ export default function Login({ onAuth }: { onAuth: (a: Auth) => void }) {
             ? <>No account? <a onClick={() => setMode("register")}>Register</a></>
             : <>Have an account? <a onClick={() => setMode("login")}>Sign in</a></>}
         </div>
-        {mode === "login" && <div className="demo">Demo login — <b>planner / planner123</b> (or admin / admin123)</div>}
+        {mode === "login" && <div className="demo">Sign in with the coordinator or admin account provided for this demo.</div>}
       </form>
     </div>
   );

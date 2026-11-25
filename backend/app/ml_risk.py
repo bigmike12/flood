@@ -2,15 +2,20 @@
 Machine-learning flood-risk component (Objective 3).
 
 Trains a Random Forest to estimate area-level flood susceptibility from terrain
-and hydrological features (elevation, slope, distance to river, wetness proxy,
-rainfall). In a real deployment the labels would come from historical flood
-extents; here we generate physically-grounded labels by running the flood model
-once, so the module trains and validates offline with no external data. The
-approach mirrors the machine-learning flood-susceptibility literature (Fatona
-et al., 2023; Löwe et al., 2021; Ghorbanzadeh et al., 2020).
+features (elevation, slope, distance to river, wetness proxy, elevation anomaly).
+In a real deployment the labels would come from historical flood extents; here
+the labels come from the flood simulator itself, so the module trains and
+validates offline with no external data.
 
-The resulting risk surface drives realistic scenario generation: flooding is
-seeded and made more severe where susceptibility is high.
+Limitation (see experiments/ml_validation.py): the labels are produced by the same
+terrain-driven simulator, and an elevation-only rule scores about the same AUC as
+the forest on the training terrain. The forest's gain is small and appears mainly
+on unseen terrains. Treat the score as a check that the pipeline works, not as a
+predictor of real floods.
+
+What the risk surface does in the platform: it only weights where residents live
+(population placement). It does not change the flood itself or the optimiser, and
+the reported Chapter 4 experiments do not use it.
 """
 from __future__ import annotations
 import numpy as np
@@ -65,6 +70,8 @@ class FloodRiskModel:
         self.metrics = {
             "accuracy": round(float(accuracy_score(yte, (proba > 0.5).astype(int))), 3),
             "roc_auc": round(float(roc_auc_score(yte, proba)), 3),
+            # baseline: rank cells by lowest elevation (same held-out split)
+            "elevation_baseline_auc": round(float(roc_auc_score(yte, -Xte[:, 0])), 3),
             "n_samples": int(len(y)),
             "flood_positives": int(y.sum()),
         }

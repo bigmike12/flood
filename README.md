@@ -83,8 +83,9 @@ npm run dev        # http://localhost:5173, proxies API/WS to :8000
 2. **Setup = Report setup (Chapter 4 numbers)** is the default. Press **Run 30-seed comparison**
    — the chart and table reproduce the evaluation table exactly. *(Obj 5)*
 3. **Setup = Live map** — pick a **region** (each has distinct terrain, so results differ).
-4. **Toggle risk heat-map** — the ML model (ROC-AUC ≈ 0.84) highlights the high-risk
-   river corridor. *(Objective 3)*
+4. **Toggle risk heat-map** — the Random Forest scores cells by flood susceptibility
+   (ROC-AUC ≈ 0.84 on a held-out split; lowest-elevation alone scores about the same).
+   It weights where residents live; it does not change the flood. *(Objective 3)*
 5. Set strategy **Random**, press **Run**; watch the flood spread, roads close, casualties
    rise. Reset, switch to **AI-optimised**, run again. Single seeds vary, so compare over
    seeds (step 2) rather than trusting one run. *(Obj 1, 2, 4)*
@@ -112,7 +113,9 @@ python -m experiments.run_experiments --seeds 30
 AI-optimised has the highest coverage and fewest casualties, but the margin over the greedy
 nearest-depot and population-proportional heuristics is small. Mean response time is 46.7 min
 for AI-optimised vs 47.5 min for random. The ML risk model scores ROC-AUC ≈ 0.84 on its
-held-out split (Live map setup).
+held-out split, about the same as ranking cells by lowest elevation (0.84). On six unseen terrains
+the forest scores 0.87–0.89 against 0.82–0.84 for elevation. See `backend/experiments/ml_validation.py`
+and `backend/experiments/results/ml_validation.json`.
 
 ## Tests
 

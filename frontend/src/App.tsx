@@ -70,7 +70,7 @@ function Dashboard({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
     if (risk) { setRisk(null); return; }
     setStatus("Loading risk surface…");
     try { const d = await api.risk(region); setRisk(d.cells);
-      setStatus(`Risk model: ROC-AUC ${d.metrics.roc_auc} · accuracy ${d.metrics.accuracy}`); }
+      setStatus(`Risk model ROC-AUC ${d.metrics.roc_auc} vs ${d.metrics.elevation_baseline_auc} for lowest-elevation alone (held-out split).`); }
     catch (e: any) { setStatus(e.message); }
   }
 
