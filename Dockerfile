@@ -18,9 +18,9 @@ RUN pip install -r /app/backend/requirements.txt
 COPY backend /app/backend
 COPY frontend/dist /app/frontend/dist
 
-# SQLite lives on a volume so user accounts and saved scenarios survive restarts.
+# SQLite file location. Mount a volume here to keep accounts and saved scenarios across
+# restarts (Render's free tier has no disks, so there the database resets on each deploy).
 RUN mkdir -p /data
-VOLUME ["/data"]
 
 WORKDIR /app/backend
 EXPOSE 8000

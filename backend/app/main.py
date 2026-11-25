@@ -7,6 +7,7 @@ Default users are seeded on first start (see startup()).
 """
 from __future__ import annotations
 import asyncio
+import json
 import os
 import statistics as st
 
@@ -145,17 +146,46 @@ def compare(req: CompareRequest, user: DB.User = Depends(AUTH.get_current_user))
     return out
 
 
+def _recommend_from(comp: dict) -> dict:
+    """Pick the strategy with the fewest casualties and write the plain-language advice."""
+    best = min(STRATEGIES, key=lambda s: comp[s]["casualties"])
+    base, b = comp["random"], comp[best]
+    if best == "random":
+        text = "No allocation strategy beat random dispatch at these settings."
+    else:
+        rt_gain = round(100 * (base["mean_response_time"] - b["mean_response_time"]) / max(base["mean_response_time"], 1e-6))
+        text = (f"Recommended strategy: {b['label']}. Versus uncoordinated (random) dispatch it raises "
+                f"demand coverage to {b['coverage_pct']}%, averts about {b['casualties_averted']} casualties "
+                f"and changes mean response time by about {int(rt_gain)}%.")
+    return {"best": best, "label": b["label"], "recommendation": text, "comparison": comp}
+
+
 @app.post("/api/recommend")
 def recommend(req: CompareRequest, user: DB.User = Depends(AUTH.get_current_user)):
-    comp = compare(req, user)
-    best = min(STRATEGIES, key=lambda s: comp[s]["casualties"])
-    base, b = comp["random"], comp[min(STRATEGIES, key=lambda s: comp[s]["casualties"])]
-    rt_gain = round(100 * (base["mean_response_time"] - b["mean_response_time"]) / max(base["mean_response_time"], 1e-6))
-    text = (f"Recommended strategy: {b['label']}. Versus uncoordinated (random) dispatch it raises "
-            f"demand coverage to {b['coverage_pct']}%, averts about {b['casualties_averted']} casualties "
-            f"and cuts mean response time by ~{int(rt_gain)}%. Pre-position responders toward the "
-            f"high-risk river corridor before onset.")
-    return {"best": best, "label": b["label"], "recommendation": text, "comparison": comp}
+    return _recommend_from(compare(req, user))
+
+
+# Results of the 30-seed evaluation (Report setup), written by
+# experiments/run_experiments.py --seeds 30. Served directly so the demo does not
+# have to recompute 120 simulations on a small hosted instance.
+_RESULTS_SUMMARY = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                "experiments", "results", "summary.json")
+
+
+@app.get("/api/report/results")
+def report_results(user: DB.User = Depends(AUTH.get_current_user)):
+    if not os.path.exists(_RESULTS_SUMMARY):
+        raise HTTPException(status_code=404, detail="Precomputed results not found")
+    with open(_RESULTS_SUMMARY) as f:
+        summ = json.load(f)
+    comp = {s: {"label": LABELS[s],
+                "mean_response_time": summ[s]["mean_response_time"],
+                "coverage_pct": summ[s]["coverage_pct"],
+                "casualties": summ[s]["casualties"],
+                "utilisation_pct": summ[s]["utilisation_pct"],
+                "casualties_averted": summ[s]["casualties_averted_vs_random"]}
+            for s in STRATEGIES}
+    return {**_recommend_from(comp), "seeds": 30, "setup": "experiment", "source": "precomputed"}
 
 
 # ================================================================ PERSISTENCE (ERD)

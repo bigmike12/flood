@@ -1,0 +1,34 @@
+{
+  "random": {
+    "mean_response_time": 47.47,
+    "response_time_sd": 3.24,
+    "coverage_pct": 44.1,
+    "casualties": 85.2,
+    "utilisation_pct": 55.4,
+    "casualties_averted_vs_random": 0.0
+  },
+  "nearest": {
+    "mean_response_time": 47.5,
+    "response_time_sd": 3.7,
+    "coverage_pct": 50.5,
+    "casualties": 78.1,
+    "utilisation_pct": 51.4,
+    "casualties_averted_vs_random": 7.1
+  },
+  "pop_proportional": {
+    "mean_response_time": 48.17,
+    "response_time_sd": 3.31,
+    "coverage_pct": 50.3,
+    "casualties": 77.1,
+    "utilisation_pct": 53.1,
+    "casualties_averted_vs_random": 8.1
+  },
+  "ai_optimised": {
+    "mean_response_time": 46.73,
+    "response_time_sd": 3.83,
+    "coverage_pct": 51.0,
+    "casualties": 76.9,
+    "utilisation_pct": 51.3,
+    "casualties_averted_vs_random": 8.3
+  }
+}

@@ -3,7 +3,6 @@ __pycache__/
 .venv/
 venv/
 env/
-backend/experiments/results/
 .DS_Store
 *.log
 node_modules/

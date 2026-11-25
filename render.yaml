@@ -1,0 +1,17 @@
+# Render Blueprint: deploys FloodResQ from the Dockerfile on Render's free tier.
+# In Render: New + -> Blueprint -> select the bigmike12/flood repository.
+services:
+  - type: web
+    name: floodresq
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: FLOOD_SECRET          # signs login tokens; Render generates a random value
+        generateValue: true
+      - key: FLOOD_ADMIN_PASSWORD  # you enter these when creating the service
+        sync: false
+      - key: FLOOD_PLANNER_PASSWORD
+        sync: false

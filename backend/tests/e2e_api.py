@@ -150,6 +150,15 @@ def main() -> int:
     r = client.post("/api/compare", headers=H, json={"setup": "experiment", "seeds": 2})
     check("compare works in the Chapter 4 'experiment' setup",
           r.status_code == 200 and set(STRATEGIES) <= set(r.json()), f"status {r.status_code}")
+    r = client.get("/api/report/results", headers=H)
+    rep = r.json() if r.status_code == 200 else {}
+    rep_cmp = rep.get("comparison", {})
+    check("precomputed 30-seed results are served",
+          r.status_code == 200 and set(STRATEGIES) <= set(rep_cmp) and rep.get("seeds") == 30,
+          f"status {r.status_code}")
+    check("precomputed results match the evaluation table (AI 51.0% coverage, random 44.1%)",
+          rep_cmp.get("ai_optimised", {}).get("coverage_pct") == 51.0
+          and rep_cmp.get("random", {}).get("coverage_pct") == 44.1)
     r = client.post("/api/recommend", headers=H, json={"region": "lokoja", "seeds": 2})
     rec = r.json() if r.status_code == 200 else {}
     check("recommend names a best strategy with a recommendation text",

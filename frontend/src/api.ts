@@ -38,6 +38,7 @@ export const api = {
   risk: (region: string) => fetch(`/api/risk?region=${region}`, { headers: headers(false) }).then(handle),
   compare: (body: any) => fetch("/api/compare", { method: "POST", headers: headers(), body: JSON.stringify(body) }).then(handle),
   recommend: (body: any) => fetch("/api/recommend", { method: "POST", headers: headers(), body: JSON.stringify(body) }).then(handle),
+  reportResults: () => fetch("/api/report/results", { headers: headers(false) }).then(handle),
   saveScenario: (body: any) => fetch("/api/scenarios", { method: "POST", headers: headers(), body: JSON.stringify(body) }).then(handle),
   listScenarios: () => fetch("/api/scenarios", { headers: headers(false) }).then(handle),
   runScenario: (id: string, body: any) =>

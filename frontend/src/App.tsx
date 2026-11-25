@@ -77,16 +77,28 @@ function Dashboard({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
   async function recommend() {
     setBusy(true); setStatus("Optimising & comparing strategies…");
     try {
-      const d = await api.recommend({ region, flood_intensity: intensity, rainfall_mm: rain,
-                                      seeds: compareSeeds, setup });
+      const d = setup === "experiment"
+        ? await api.reportResults()
+        : await api.recommend({ region, flood_intensity: intensity, rainfall_mm: rain,
+                                seeds: compareSeeds, setup });
       setRec(d.recommendation); setCmp(d.comparison); setStatus("Recommendation ready.");
     } catch (e: any) { setStatus(e.message); } finally { setBusy(false); }
   }
   async function compare() {
-    setBusy(true); setStatus(`Running ${compareSeeds}-seed comparison…`);
-    try { setCmp(await api.compare({ region, flood_intensity: intensity, rainfall_mm: rain,
-                                     seeds: compareSeeds, setup }));
-      setStatus("Comparison complete."); }
+    setBusy(true);
+    try {
+      if (setup === "experiment") {
+        // Precomputed 30-seed run of the same setup: instant, and identical to computing it.
+        const d = await api.reportResults();
+        setCmp(d.comparison);
+        setStatus("Showing the 30-seed results from the evaluation (report setup).");
+      } else {
+        setStatus(`Running ${compareSeeds}-seed comparison…`);
+        setCmp(await api.compare({ region, flood_intensity: intensity, rainfall_mm: rain,
+                                   seeds: compareSeeds, setup }));
+        setStatus("Comparison complete.");
+      }
+    }
     catch (e: any) { setStatus(e.message); } finally { setBusy(false); }
   }
 
@@ -192,7 +204,9 @@ function Dashboard({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
         {rec && <div className="rec">{rec}</div>}
 
         <h2>Compare strategies</h2>
-        <button className="btn ghost" onClick={compare} disabled={busy}>Run {compareSeeds}-seed comparison</button>
+        <button className="btn ghost" onClick={compare} disabled={busy}>
+          {setup === "experiment" ? "Show 30-seed results" : `Run ${compareSeeds}-seed comparison`}
+        </button>
         {cmp && <ComparisonChart data={cmp} />}
 
         <h2>Saved scenarios (database)</h2>
