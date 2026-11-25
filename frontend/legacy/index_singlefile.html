@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Flood Disaster Response Simulation Platform</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{--navy:#0B2A4A;--blue:#2E4A7A;--accent:#E0872A;--teal:#1C7293;--ink:#13202B;--mut:#5A6B7A;--card:#f4f8fb;--line:#dbe6ef;}
+  *{box-sizing:border-box;} html,body{margin:0;height:100%;font-family:Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);}
+  #app{display:grid;grid-template-columns:320px 1fr 340px;grid-template-rows:56px 1fr;height:100vh;}
+  header{grid-column:1/4;background:var(--navy);color:#fff;display:flex;align-items:center;padding:0 18px;gap:12px;}
+  header h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.3px;}
+  header .tag{font-size:11px;color:#9FB4C7;margin-left:auto;}
+  aside{background:var(--card);border-right:1px solid var(--line);padding:14px;overflow:auto;}
+  aside.right{border-right:none;border-left:1px solid var(--line);}
+  #map{height:100%;width:100%;}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin:16px 0 8px;}
+  h2:first-child{margin-top:2px;}
+  label{display:block;font-size:12px;color:var(--mut);margin:9px 0 3px;}
+  select,input[type=range]{width:100%;}
+  select{padding:6px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:13px;}
+  .val{float:right;color:var(--navy);font-weight:600;}
+  .btn{display:block;width:100%;border:none;border-radius:7px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:10px;}
+  .btn.primary{background:var(--accent);color:#fff;} .btn.primary:hover{filter:brightness(1.05);}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line);}
+  .btn.ghost:hover{background:#eef3f9;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .row{display:flex;gap:8px;} .row .btn{margin-top:10px;}
+  .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;}
+  .kpi .n{font-size:22px;font-weight:700;color:var(--navy);} .kpi .l{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;}
+  .kpi.accent .n{color:var(--accent);}
+  .status{font-size:12px;color:var(--mut);margin-top:8px;min-height:16px;}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:11px;color:var(--ink);}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+  .rec{background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:10px;font-size:12.5px;line-height:1.45;margin-top:8px;color:var(--ink);}
+  table.cmp{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px;}
+  table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:right;}
+  table.cmp th:first-child,table.cmp td:first-child{text-align:left;}
+  table.cmp tr.best{background:#fdf3e7;font-weight:600;}
+  .barwrap{margin-top:6px;}
+  .pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;background:#e6eef7;color:var(--navy);}
+  .clock{font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>AI-Driven Flood Disaster Response Simulation Platform</h1>
+    <span class="tag">Nigeria &middot; NEMA / SEMA decision-support MVP</span>
+  </header>
+
+  <!-- LEFT: scenario builder + controls -->
+  <aside>
+    <h2>Scenario</h2>
+    <label>Region</label>
+    <select id="region"></select>
+    <label>Flood intensity <span class="val" id="intensityV">0.6</span></label>
+    <input type="range" id="intensity" min="0.2" max="1" step="0.05" value="0.6"/>
+    <label>Rainfall (mm) <span class="val" id="rainV">60</span></label>
+    <input type="range" id="rain" min="20" max="160" step="5" value="60"/>
+    <label>Allocation strategy</label>
+    <select id="strategy">
+      <option value="ai_optimised">AI-optimised (proposed)</option>
+      <option value="nearest">Nearest-depot</option>
+      <option value="pop_proportional">Population-proportional</option>
+      <option value="random">Random (baseline)</option>
+    </select>
+    <label>Responder units <span class="val" id="unitsV">20</span></label>
+    <input type="range" id="units" min="6" max="30" step="1" value="20"/>
+    <label>Random seed <span class="val" id="seedV">42</span></label>
+    <input type="range" id="seed" min="0" max="60" step="1" value="42"/>
+
+    <h2>Run</h2>
+    <button class="btn primary" id="play">&#9658; Run simulation</button>
+    <div class="row">
+      <button class="btn ghost" id="pause">Pause</button>
+      <button class="btn ghost" id="reset">Reset</button>
+    </div>
+    <button class="btn ghost" id="riskBtn">Toggle risk heat-map</button>
+    <div class="status" id="status">Ready.</div>
+
+    <h2>Map legend</h2>
+    <div class="legend">
+      <span><i style="background:#7fb0e0"></i>flood</span>
+      <span><i style="background:#2e7d32"></i>safe</span>
+      <span><i style="background:#e0a72a"></i>at-risk</span>
+      <span><i style="background:#d33"></i>awaiting</span>
+      <span><i style="background:#1C7293"></i>rescued</span>
+      <span><i style="background:#111"></i>casualty</span>
+      <span><i style="background:#6a1b9a"></i>responder</span>
+    </div>
+  </aside>
+
+  <div id="map"></div>
+
+  <!-- RIGHT: KPIs + AI recommendation + comparison -->
+  <aside class="right">
+    <h2>Live indicators <span class="pill clock" id="clock">t=0</span></h2>
+    <div class="kpi-grid">
+      <div class="kpi accent"><div class="n" id="k_rt">0</div><div class="l">Resp. time (min)</div></div>
+      <div class="kpi"><div class="n" id="k_cov">0%</div><div class="l">Coverage</div></div>
+      <div class="kpi"><div class="n" id="k_res">0</div><div class="l">Rescued</div></div>
+      <div class="kpi"><div class="n" id="k_cas">0</div><div class="l">Casualties</div></div>
+      <div class="kpi"><div class="n" id="k_flood">0%</div><div class="l">Area flooded</div></div>
+      <div class="kpi"><div class="n" id="k_road">0%</div><div class="l">Roads closed</div></div>
+    </div>
+
+    <h2>AI recommendation</h2>
+    <button class="btn ghost" id="recBtn">Get AI recommendation</button>
+    <div class="rec" id="rec" style="display:none"></div>
+
+    <h2>Compare strategies</h2>
+    <button class="btn ghost" id="cmpBtn">Run 6-seed comparison</button>
+    <div class="barwrap"><canvas id="cmpChart" height="150"></canvas></div>
+    <table class="cmp" id="cmpTable" style="display:none">
+      <thead><tr><th>Strategy</th><th>Cov%</th><th>Cas.</th><th>Averted</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </aside>
+</div>
+
+<script>
+const API = location.origin;
+const map = L.map('map',{preferCanvas:true}).setView([7.802,6.744],12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap'}).addTo(map);
+const floodLayer=L.layerGroup().addTo(map), peopleLayer=L.layerGroup().addTo(map),
+      unitLayer=L.layerGroup().addTo(map), hospLayer=L.layerGroup().addTo(map), riskLayer=L.layerGroup();
+let ws=null, paused=false, riskOn=false, cmpChart=null;
+
+const $=id=>document.getElementById(id);
+const bind=(id,v)=>{$(id).oninput=e=>{$(v).textContent=e.target.value;};};
+bind('intensity','intensityV');bind('rain','rainV');bind('units','unitsV');bind('seed','seedV');
+
+// load regions
+fetch(API+'/api/regions').then(r=>r.json()).then(rs=>{
+  $('region').innerHTML=rs.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
+});
+$('region').onchange=()=>{ if(!ws) recenter(); };
+function recenter(){
+  fetch(API+'/api/regions').then(r=>r.json()).then(rs=>{
+    const r=rs.find(x=>x.id===$('region').value); if(r) map.setView([r.lat,r.lng],12);
+  });
+}
+
+const stateColor={safe:'#2e7d32',at_risk:'#e0a72a',awaiting_rescue:'#dd3333',rescued:'#1C7293',casualty:'#111111'};
+function floodColor(d){ if(d<0.3)return '#bcd7f0'; if(d<0.7)return '#7fb0e0'; if(d<1.2)return '#3d7fc4'; return '#1b4f8a'; }
+
+function draw(s){
+  floodLayer.clearLayers();peopleLayer.clearLayers();unitLayer.clearLayers();hospLayer.clearLayers();
+  s.flood.forEach(f=>L.circleMarker([f.lat,f.lng],{radius:5,stroke:false,fillColor:floodColor(f.depth),fillOpacity:0.55}).addTo(floodLayer));
+  s.people.forEach(p=>L.circleMarker([p.lat,p.lng],{radius:2.6,stroke:false,fillColor:stateColor[p.state]||'#888',fillOpacity:0.95}).addTo(peopleLayer));
+  s.units.forEach(u=>L.circleMarker([u.lat,u.lng],{radius:4.5,color:'#fff',weight:1,fillColor:u.kind==='ambulance'?'#c2185b':'#6a1b9a',fillOpacity:1}).addTo(unitLayer));
+  s.hospitals.forEach(h=>L.marker([h.lat,h.lng],{icon:L.divIcon({className:'',html:`<div style="background:#fff;border:2px solid #0B2A4A;border-radius:4px;font-size:10px;font-weight:700;color:#0B2A4A;padding:0 3px">H ${h.free}</div>`,iconSize:[26,16]})}).addTo(hospLayer));
+  const k=s.kpis;
+  $('k_rt').textContent=k.mean_response_time; $('k_cov').textContent=k.coverage_pct+'%';
+  $('k_res').textContent=k.rescued; $('k_cas').textContent=k.casualties;
+  $('k_flood').textContent=s.flooded_pct+'%'; $('k_road').textContent=s.roads_closed_pct+'%';
+  $('clock').textContent='t='+s.step+'  ('+s.minute+' min)';
+}
+
+function scenarioCfg(){
+  return {region:$('region').value,flood_intensity:+$('intensity').value,rainfall_mm:+$('rain').value,
+          strategy:$('strategy').value,seed:+$('seed').value,n_responder_units:+$('units').value,
+          use_risk:true,delay:0.10};
+}
+
+$('play').onclick=()=>{
+  if(ws){ws.close();ws=null;}
+  paused=false; $('status').textContent='Connecting…';
+  ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws/run');
+  ws.onopen=()=>{ ws.send(JSON.stringify(scenarioCfg())); $('status').textContent='Running…'; };
+  ws.onmessage=ev=>{
+    const m=JSON.parse(ev.data);
+    if(m.type==='init'){ map.fitBounds([[m.bounds.south,m.bounds.west],[m.bounds.north,m.bounds.east]]); }
+    else if(m.type==='step'){ if(!paused) draw(m); }
+    else if(m.type==='done'){ $('status').textContent='Finished. Coverage '+m.kpis.coverage_pct+'% · casualties '+m.kpis.casualties; }
+    else if(m.type==='error'){ $('status').textContent='Error: '+m.message; }
+  };
+  ws.onclose=()=>{ if($('status').textContent==='Running…')$('status').textContent='Stopped.'; };
+};
+$('pause').onclick=()=>{ paused=!paused; $('pause').textContent=paused?'Resume':'Pause'; };
+$('reset').onclick=()=>{ if(ws){ws.close();ws=null;} floodLayer.clearLayers();peopleLayer.clearLayers();unitLayer.clearLayers();hospLayer.clearLayers();
+  ['k_rt','k_res','k_cas'].forEach(i=>$(i).textContent='0');['k_cov','k_flood','k_road'].forEach(i=>$(i).textContent='0%');
+  $('clock').textContent='t=0'; $('status').textContent='Reset.'; };
+
+$('riskBtn').onclick=()=>{
+  riskOn=!riskOn;
+  if(!riskOn){ map.removeLayer(riskLayer); return; }
+  $('status').textContent='Loading risk surface…';
+  fetch(API+'/api/risk?region='+$('region').value).then(r=>r.json()).then(d=>{
+    riskLayer.clearLayers();
+    d.cells.forEach(c=>{ if(c.risk>0.15) L.circleMarker([c.lat,c.lng],{radius:6,stroke:false,
+      fillColor:`rgba(224,${Math.round(135-90*c.risk)},42,1)`,fillOpacity:0.15+0.5*c.risk}).addTo(riskLayer); });
+    riskLayer.addTo(map);
+    $('status').textContent='Risk model: AUC '+d.metrics.roc_auc+' · accuracy '+d.metrics.accuracy;
+  });
+};
+
+$('recBtn').onclick=()=>{
+  $('status').textContent='Optimising & comparing strategies…'; $('recBtn').disabled=true;
+  fetch(API+'/api/recommend',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({region:$('region').value,flood_intensity:+$('intensity').value,rainfall_mm:+$('rain').value,seeds:6})})
+    .then(r=>r.json()).then(d=>{ $('rec').style.display='block'; $('rec').textContent=d.recommendation;
+      $('status').textContent='Recommendation ready.'; $('recBtn').disabled=false; renderCmp(d.comparison); });
+};
+
+$('cmpBtn').onclick=()=>{
+  $('status').textContent='Running 6-seed comparison…'; $('cmpBtn').disabled=true;
+  fetch(API+'/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({region:$('region').value,flood_intensity:+$('intensity').value,rainfall_mm:+$('rain').value,seeds:6})})
+    .then(r=>r.json()).then(d=>{ renderCmp(d); $('status').textContent='Comparison complete.'; $('cmpBtn').disabled=false; });
+};
+
+function renderCmp(d){
+  const order=['random','pop_proportional','nearest','ai_optimised'];
+  const labels=order.map(s=>d[s].label), cov=order.map(s=>d[s].coverage_pct), cas=order.map(s=>d[s].casualties);
+  const best=order.reduce((a,b)=>d[b].casualties<d[a].casualties?b:a);
+  const tb=$('cmpTable').querySelector('tbody');
+  tb.innerHTML=order.map(s=>`<tr class="${s===best?'best':''}"><td>${d[s].label}</td><td>${d[s].coverage_pct}</td><td>${d[s].casualties}</td><td>${d[s].casualties_averted}</td></tr>`).join('');
+  $('cmpTable').style.display='table';
+  const data={labels,datasets:[
+    {label:'Coverage %',data:cov,backgroundColor:'#2E4A7A'},
+    {label:'Casualties',data:cas,backgroundColor:'#E0872A'}]};
+  if(cmpChart)cmpChart.destroy();
+  cmpChart=new Chart($('cmpChart'),{type:'bar',data,options:{responsive:true,plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},
+    scales:{x:{ticks:{font:{size:9}}},y:{beginAtZero:true}}}});
+}
+</script>
+</body>
+</html>

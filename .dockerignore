@@ -1,0 +1,16 @@
+**/.venv
+**/.venv311
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/*.db
+**/.DS_Store
+**/*.log
+frontend/node_modules
+frontend/src
+frontend/legacy
+frontend/dist/dist
+backend/experiments/results
+backend/experiments/exp.log
+.git

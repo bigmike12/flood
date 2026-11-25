@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+backend/experiments/results/
+.DS_Store
+*.log
+node_modules/
+
+# local dev database and environments (not for version control)
+*.db
+.venv311/
+.pytest_cache/
+frontend/dist/dist/
