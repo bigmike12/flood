@@ -16,9 +16,25 @@ from .ml_risk import FloodRiskModel
 _RISK = FloodRiskModel()
 
 
+SETUPS = ("experiment", "live")
+
+
 def build_model(region: str = DEFAULT_REGION, flood_intensity: float = 0.6,
                 rainfall_mm: float = 60.0, strategy: str = "ai_optimised",
-                seed: int = 42, use_risk: bool = True, **overrides) -> FloodResponseModel:
+                seed: int = 42, use_risk: bool = True, setup: str = "live",
+                **overrides) -> FloodResponseModel:
+    """Build a model for one scenario.
+
+    setup="experiment" reproduces the evaluation harness exactly
+    (experiments/run_experiments.py): a 36x36 grid with the default terrain, no
+    region terrain and no ML risk surface. The Chapter 4 results come from this
+    setup. setup="live" (default) uses the selected region's terrain, a 40x40
+    grid and the ML risk surface, for the interactive map.
+    """
+    if setup == "experiment":
+        cfg = SimConfig(seed=seed, flood_intensity=flood_intensity, rainfall_mm=rainfall_mm,
+                        strategy=strategy, grid_size=36, **overrides)
+        return FloodResponseModel(cfg)
     reg = REGIONS.get(region, REGIONS[DEFAULT_REGION])
     cfg = SimConfig(seed=seed, flood_intensity=flood_intensity,
                     rainfall_mm=rainfall_mm, strategy=strategy, **overrides)

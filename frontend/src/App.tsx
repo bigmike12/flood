@@ -19,6 +19,10 @@ function Dashboard({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
   const [strategy, setStrategy] = useState("ai_optimised");
   const [units, setUnits] = useState(20);
   const [seed, setSeed] = useState(42);
+  // "experiment" = the Chapter 4 evaluation setup (reproduces the report's table, 30 seeds).
+  // "live" = Lokoja-style terrain with the ML risk surface, for the interactive map.
+  const [setup, setSetup] = useState<"experiment" | "live">("experiment");
+  const compareSeeds = setup === "experiment" ? 30 : 6;
 
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [center, setCenter] = useState<[number, number]>([7.802, 6.744]);
@@ -40,7 +44,7 @@ function Dashboard({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
 
   function cfg() {
     return { region, flood_intensity: intensity, rainfall_mm: rain, strategy, seed,
-             n_responder_units: units };
+             n_responder_units: units, setup };
   }
 
   function run() {
@@ -73,13 +77,15 @@ function Dashboard({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
   async function recommend() {
     setBusy(true); setStatus("Optimising & comparing strategies…");
     try {
-      const d = await api.recommend({ region, flood_intensity: intensity, rainfall_mm: rain, seeds: 6 });
+      const d = await api.recommend({ region, flood_intensity: intensity, rainfall_mm: rain,
+                                      seeds: compareSeeds, setup });
       setRec(d.recommendation); setCmp(d.comparison); setStatus("Recommendation ready.");
     } catch (e: any) { setStatus(e.message); } finally { setBusy(false); }
   }
   async function compare() {
-    setBusy(true); setStatus("Running 6-seed comparison…");
-    try { setCmp(await api.compare({ region, flood_intensity: intensity, rainfall_mm: rain, seeds: 6 }));
+    setBusy(true); setStatus(`Running ${compareSeeds}-seed comparison…`);
+    try { setCmp(await api.compare({ region, flood_intensity: intensity, rainfall_mm: rain,
+                                     seeds: compareSeeds, setup }));
       setStatus("Comparison complete."); }
     catch (e: any) { setStatus(e.message); } finally { setBusy(false); }
   }
@@ -114,8 +120,18 @@ function Dashboard({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
       {/* LEFT */}
       <aside className="left">
         <h2>Scenario</h2>
+        <label>Setup</label>
+        <select value={setup} onChange={(e) => setSetup(e.target.value as "experiment" | "live")}>
+          <option value="experiment">Report setup (Chapter 4 numbers)</option>
+          <option value="live">Live map (region terrain + risk model)</option>
+        </select>
+        <div style={{ fontSize: 11, color: "#5A6B7A", margin: "4px 0 8px" }}>
+          {setup === "experiment"
+            ? "Reproduces the evaluation table exactly (36×36 grid, 30 seeds). Region and risk map are not used in this setup."
+            : "Interactive map: the selected region's terrain, a 40×40 grid and the ML risk surface."}
+        </div>
         <label>Region</label>
-        <select value={region} onChange={(e) => setRegion(e.target.value)}>
+        <select value={region} disabled={setup === "experiment"} onChange={(e) => setRegion(e.target.value)}>
           {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
         <label>Flood intensity <span className="v">{intensity.toFixed(2)}</span></label>
@@ -140,7 +156,7 @@ function Dashboard({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
           <button className="btn ghost" onClick={() => { pausedRef.current = !pausedRef.current; setStatus(pausedRef.current ? "Paused." : "Running…"); }}>Pause</button>
           <button className="btn ghost" onClick={reset}>Reset</button>
         </div>
-        <button className="btn ghost" onClick={toggleRisk}>Toggle risk heat-map</button>
+        <button className="btn ghost" onClick={toggleRisk} disabled={setup === "experiment"}>Toggle risk heat-map</button>
         <button className="btn ghost" onClick={saveScenario}>Save scenario to database</button>
         <div className="status">{status}</div>
 
@@ -176,7 +192,7 @@ function Dashboard({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
         {rec && <div className="rec">{rec}</div>}
 
         <h2>Compare strategies</h2>
-        <button className="btn ghost" onClick={compare} disabled={busy}>Run 6-seed comparison</button>
+        <button className="btn ghost" onClick={compare} disabled={busy}>Run {compareSeeds}-seed comparison</button>
         {cmp && <ComparisonChart data={cmp} />}
 
         <h2>Saved scenarios (database)</h2>

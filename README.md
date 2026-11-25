@@ -80,13 +80,15 @@ npm run dev        # http://localhost:5173, proxies API/WS to :8000
 ## Using the platform (defence demo — ~5 minutes)
 
 1. Sign in (planner / planner123).
-2. Pick a **region** — each region now has distinct terrain, so results differ.
-3. **Toggle risk heat-map** — the ML model (ROC-AUC ≈ 0.84) highlights the high-risk
+2. **Setup = Report setup (Chapter 4 numbers)** is the default. Press **Run 30-seed comparison**
+   — the chart and table reproduce the evaluation table exactly. *(Obj 5)*
+3. **Setup = Live map** — pick a **region** (each has distinct terrain, so results differ).
+4. **Toggle risk heat-map** — the ML model (ROC-AUC ≈ 0.84) highlights the high-risk
    river corridor. *(Objective 3)*
-4. Set strategy **Random**, press **Run**; watch the flood spread, roads close, casualties
-   rise. Reset, switch to **AI-optimised**, run again — more people rescued. *(Obj 1, 2, 4)*
-5. **Get AI recommendation** — the system compares strategies and states the best one.
-6. **Run 6-seed comparison** — chart + table show AI-optimised leading. *(Obj 5)*
+5. Set strategy **Random**, press **Run**; watch the flood spread, roads close, casualties
+   rise. Reset, switch to **AI-optimised**, run again. Single seeds vary, so compare over
+   seeds (step 2) rather than trusting one run. *(Obj 1, 2, 4)*
+6. **Get AI recommendation** — the system compares strategies and states the best one.
 7. **Save scenario to database**, then click it under *Saved scenarios* to run and persist
    a result — demonstrates the ERD persistence. *(Objective 4 / data layer)*
 
@@ -95,11 +97,22 @@ npm run dev        # http://localhost:5173, proxies API/WS to :8000
 ```bash
 cd backend
 python -m experiments.run_experiments --seeds 30
-# -> experiments/results/{summary.json, fig_response_time.png, fig_coverage.png, fig_casualties.png}
+# -> experiments/results/{summary.json, runs.csv, fig_response_time.png, fig_coverage.png, fig_casualties.png}
 ```
 
-30-seed result: AI-optimised reaches ~55.6% coverage vs ~45.9% for random dispatch and
-averts ~12 casualties per scenario; the ML risk model scores ROC-AUC ≈ 0.84.
+30-seed result (mean over seeds 0–29, Report setup):
+
+| Strategy | Coverage | Casualties | Casualties averted vs random |
+|---|---|---|---|
+| Random | 44.1% | 85.2 | — |
+| Nearest-depot | 50.5% | 78.1 | 7.1 |
+| Population-proportional | 50.3% | 77.1 | 8.1 |
+| AI-optimised | 51.0% | 76.9 | 8.3 |
+
+AI-optimised has the highest coverage and fewest casualties, but the margin over the greedy
+nearest-depot and population-proportional heuristics is small. Mean response time is 46.7 min
+for AI-optimised vs 47.5 min for random. The ML risk model scores ROC-AUC ≈ 0.84 on its
+held-out split (Live map setup).
 
 ## Tests
 

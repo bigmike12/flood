@@ -147,6 +147,9 @@ def main() -> int:
           f"status {r.status_code}")
     check("baseline (random) averts 0 casualties vs itself",
           cmp_.get("random", {}).get("casualties_averted") == 0)
+    r = client.post("/api/compare", headers=H, json={"setup": "experiment", "seeds": 2})
+    check("compare works in the Chapter 4 'experiment' setup",
+          r.status_code == 200 and set(STRATEGIES) <= set(r.json()), f"status {r.status_code}")
     r = client.post("/api/recommend", headers=H, json={"region": "lokoja", "seeds": 2})
     rec = r.json() if r.status_code == 200 else {}
     check("recommend names a best strategy with a recommendation text",
@@ -193,6 +196,8 @@ def main() -> int:
     print("\n8. Input validation")
     r = client.post("/api/simulate", headers=H, json={"flood_intensity": 5.0})
     check("out-of-range flood_intensity rejected (422)", r.status_code == 422, f"status {r.status_code}")
+    r = client.post("/api/simulate", headers=H, json={"setup": "something-else"})
+    check("unknown setup name rejected (422)", r.status_code == 422, f"status {r.status_code}")
     r = client.post("/api/auth/register", json={"username": "x", "password": "123"})
     check("too-short username and password rejected (422)", r.status_code == 422, f"status {r.status_code}")
 

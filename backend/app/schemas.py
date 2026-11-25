@@ -1,6 +1,11 @@
 """Pydantic request/response schemas for the API."""
 from __future__ import annotations
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+
+SetupName = Literal["experiment", "live"]
 
 
 class ScenarioRequest(BaseModel):
@@ -10,6 +15,7 @@ class ScenarioRequest(BaseModel):
     strategy: str = "ai_optimised"
     seed: int = 42
     use_risk: bool = True
+    setup: SetupName = "live"
     n_responder_units: int | None = None
     n_ambulances: int | None = None
 
@@ -19,6 +25,7 @@ class CompareRequest(BaseModel):
     flood_intensity: float = 0.6
     rainfall_mm: float = 60.0
     seeds: int = Field(6, ge=1, le=30)
+    setup: SetupName = "live"
 
 
 # ---- auth ----

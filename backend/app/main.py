@@ -118,7 +118,7 @@ def simulate(req: ScenarioRequest, user: DB.User = Depends(AUTH.get_current_user
         over["n_ambulances"] = req.n_ambulances
     m = SC.build_model(region=req.region, flood_intensity=req.flood_intensity,
                        rainfall_mm=req.rainfall_mm, strategy=req.strategy,
-                       seed=req.seed, use_risk=req.use_risk, **over)
+                       seed=req.seed, use_risk=req.use_risk, setup=req.setup, **over)
     m.run()
     return m.snapshot(downsample=2)
 
@@ -129,7 +129,8 @@ def compare(req: CompareRequest, user: DB.User = Depends(AUTH.get_current_user))
     out = {}
     for strat in STRATEGIES:
         ks = [SC.build_model(region=req.region, flood_intensity=req.flood_intensity,
-                             rainfall_mm=req.rainfall_mm, strategy=strat, seed=seed).run().to_dict()
+                             rainfall_mm=req.rainfall_mm, strategy=strat, seed=seed,
+                             setup=req.setup).run().to_dict()
               for seed in range(req.seeds)]
         out[strat] = {
             "label": LABELS[strat],
@@ -253,7 +254,8 @@ async def ws_run(ws: WebSocket):
                                rainfall_mm=float(cfg.get("rainfall_mm", 60.0)),
                                strategy=cfg.get("strategy", "ai_optimised"),
                                seed=int(cfg.get("seed", 42)),
-                               use_risk=bool(cfg.get("use_risk", True)), **over)
+                               use_risk=bool(cfg.get("use_risk", True)),
+                               setup=cfg.get("setup", "live"), **over)
         await ws.send_json({"type": "init", "bounds": model.terrain.bounds(),
                             "center": {"lat": model.terrain.center_lat, "lng": model.terrain.center_lng}})
         delay = float(cfg.get("delay", 0.12))
